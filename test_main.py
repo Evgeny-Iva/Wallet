@@ -1,7 +1,9 @@
 import pytest
 import uuid
 from fastapi.testclient import TestClient
-from main import app, wallets
+from main import app
+from database import SessionLocal
+from model import Wallet
 
 
 client = TestClient(app)
@@ -12,7 +14,13 @@ def test_get_existing_wallet():
     response = client.get(f"/api/v1/wallets/{wallet_key}")
     assert response.status_code == 200
     assert response.json() == {"balance": 100.0}
-    del wallets[wallet_key]
+
+    db = SessionLocal()
+    try:
+        db.query(Wallet).filter(Wallet.uuid == wallet_key).delete()
+        db.commit()
+    finally:
+        db.close()
 
 
 def test_get_nonexistent_wallet():
@@ -23,40 +31,49 @@ def test_get_nonexistent_wallet():
     assert response.json()["detail"] == "Wallet not found"
 
 
-def gen_wallets():
+def gen_wallets(balance=100.0):
     """Создаем уникальный uuid для тестов"""
-    wallet_uuid = uuid.uuid4()
-    wallet_key = str(wallet_uuid)
-    wallets[wallet_key] = 100.0
-    return wallet_key
+    db = SessionLocal()
+    try:
+        wallet_key = str(uuid.uuid4())
+        wallet = Wallet(uuid=wallet_key, balance=balance)
+        db.add(wallet)
+        db.commit()
+        return wallet_key
+    finally:
+        db.close()
 
 
 def test_make_operation():
     """Проверяем операции с балансом"""
-    wallet_key = gen_wallets()
+    db = SessionLocal()
+    try:
+        wallet_key = gen_wallets()
 
-    response = client.post(
-        f"/api/v1/wallets/{wallet_key}/operation",
-        json={"operation_type": "DEPOSIT", "amount": 50.0}
-    )
+        response = client.post(
+            f"/api/v1/wallets/{wallet_key}/operation",
+            json={"operation_type": "DEPOSIT", "amount": 50.0}
+        )
 
-    assert response.status_code == 200
-    assert response.json() == {"balance": 150.0}
+        assert response.status_code == 200
+        assert response.json() == {"balance": 150.0}
 
-    response = client.post(
-        f"/api/v1/wallets/{wallet_key}/operation",
-        json={"operation_type": "WITHDRAW", "amount": 50.0}
-    )
+        response = client.post(
+            f"/api/v1/wallets/{wallet_key}/operation",
+            json={"operation_type": "WITHDRAW", "amount": 50.0}
+        )
 
-    assert response.status_code == 200
-    assert response.json() == {"balance": 100.0}
+        assert response.status_code == 200
+        assert response.json() == {"balance": 100.0}
 
-    response = client.post(
-        f"/api/v1/wallets/{wallet_key}/operation",
-        json={"operation_type": "WITHDRAW", "amount": 1000.0}
-    )
+        response = client.post(
+            f"/api/v1/wallets/{wallet_key}/operation",
+            json={"operation_type": "WITHDRAW", "amount": 1000.0}
+        )
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Insufficient funds"
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Insufficient funds"
 
-    del wallets[wallet_key]
+        db.query(Wallet).filter(Wallet.uuid == wallet_key).delete()
+    finally:
+        db.close()
