@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from uuid import UUID
 from api.database import Base, engine, AsyncSessionLocal
-from api.crud import get_wallet_by_uuid
+from api.crud import get_wallet_by_uuid, get_wallet_for_update
 from contextlib import asynccontextmanager
 
 
@@ -56,7 +56,7 @@ async def make_operation(wallet_id: UUID, request: OperationRequest):
     В случае ошибки возвращает соответствующий HTTP статус (404, 400).
     """
     async with AsyncSessionLocal() as db:
-        wallet = await get_wallet_by_uuid(db, str(wallet_id))
+        wallet = await get_wallet_for_update(db, str(wallet_id))
 
         if not wallet:
             raise HTTPException(status_code=404, detail="Wallet not found")
