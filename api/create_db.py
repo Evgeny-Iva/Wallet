@@ -10,7 +10,7 @@ async def create_database():
         password=DB_PASSWORD,
         host=DB_HOST,
         port=DB_PORT,
-        database='postgres'
+        database="postgres",
     )
 
     result = await conn.fetchval(

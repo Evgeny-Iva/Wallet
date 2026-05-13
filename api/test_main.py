@@ -13,6 +13,7 @@ async def client():
     """Фикстура для тестового клиента"""
     async with engine.begin() as conn:
         from api.database import Base
+
         await conn.run_sync(Base.metadata.create_all)
 
     transport = ASGITransport(app=app)
@@ -52,30 +53,27 @@ async def test_get_nonexistent_wallet(client):
     assert response.json()["detail"] == "Wallet not found"
 
 
-async def test_make_operation(client):
+@pytest.mark.parametrize(
+    "operation_type, amount, expected_status, expected_balance",
+    [
+        ("DEPOSIT", 50.0, 200, 150.0),
+        ("WITHDRAW", 50.0, 200, 50.0),
+        ("WITHDRAW", 1000.0, 400, None),
+    ],
+)
+async def test_make_operation(
+    client, operation_type, amount, expected_status, expected_balance
+):
     """Проверяем операции с балансом"""
     wallet_key = await generation_wallets()
 
     response = await client.post(
         f"/api/v1/wallets/{wallet_key}/operation",
-        json={"operation_type": "DEPOSIT", "amount": 50.0}
+        json={"operation_type": operation_type, "amount": amount},
     )
 
-    assert response.status_code == 200
-    assert response.json() == {"balance": 150.0}
-
-    response = await client.post(
-        f"/api/v1/wallets/{wallet_key}/operation",
-        json={"operation_type": "WITHDRAW", "amount": 50.0}
-    )
-
-    assert response.status_code == 200
-    assert response.json() == {"balance": 100.0}
-
-    response = await client.post(
-        f"/api/v1/wallets/{wallet_key}/operation",
-        json={"operation_type": "WITHDRAW", "amount": 1000.0}
-    )
-
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Insufficient funds"
+    assert response.status_code == expected_status
+    if expected_balance is not None:
+        assert response.json() == {"balance": expected_balance}
+    else:
+        assert response.json()["detail"] == "Insufficient funds"

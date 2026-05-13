@@ -1,9 +1,16 @@
+import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from uuid import UUID
 from api.database import Base, engine, AsyncSessionLocal
 from api.crud import get_wallet_by_uuid, get_wallet_for_update
 from contextlib import asynccontextmanager
+
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -24,6 +31,7 @@ class OperationRequest(BaseModel):
     - operation_type: тип операции (DEPOSIT или WITHDRAW)
     - amount: сумма операции (положительное число)
     """
+
     operation_type: str
     amount: float = Field(..., gt=0, description="Сумма должна быть положительной")
 
@@ -71,7 +79,13 @@ async def make_operation(wallet_id: UUID, request: OperationRequest):
             wallet.balance -= request.amount
 
         else:
-            raise HTTPException(status_code=400, detail="Invalid operation_type. Use DEPOSIT or WITHDRAW")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid operation_type. Use DEPOSIT or WITHDRAW",
+            )
 
         await db.commit()
+        logger.info(
+            f"Wallet {wallet_id}: {operation_type} {request.amount}, new balance {wallet.balance}"
+        )
         return {"balance": wallet.balance}
