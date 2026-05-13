@@ -1,16 +1,20 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from uuid import UUID
-from database import Base, engine, AsyncSessionLocal
-from crud import get_wallet_by_uuid
+from api.database import Base, engine, AsyncSessionLocal
+from api.crud import get_wallet_by_uuid
+from contextlib import asynccontextmanager
 
 
-app = FastAPI()
-
-@app.on_event("startup")
-async def init_db():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    yield
+    await engine.dispose()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 class OperationRequest(BaseModel):

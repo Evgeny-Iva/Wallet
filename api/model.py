@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Float
-from database import Base
+from api.database import Base
 
 
 class Wallet(Base):
