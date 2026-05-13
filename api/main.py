@@ -2,9 +2,8 @@ import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from uuid import UUID
-from api.database import Base, engine, AsyncSessionLocal
+from api.database import AsyncSessionLocal
 from api.crud import get_wallet_by_uuid, get_wallet_for_update
-from contextlib import asynccontextmanager
 
 
 logging.basicConfig(
@@ -12,16 +11,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    await engine.dispose()
-
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 
 class OperationRequest(BaseModel):
