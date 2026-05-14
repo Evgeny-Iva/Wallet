@@ -1,13 +1,16 @@
 FROM python:3.13-slim
 
+RUN apt-get update && apt-get install -y netcat-openbsd
+
 WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY api/ ./api/
-COPY migrate.py .
+COPY entrypoint.sh .
+COPY alembic.ini .
+COPY migrations ./migrations
 
-RUN python migrate.py
-
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--post", "8000"]
+RUN chmod +x entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]
