@@ -30,13 +30,14 @@ async def client():
 async def generation_wallets(balance=100.0):
     """Создаем уникальный uuid для тестов"""
     async with AsyncSessionLocal() as db:
-        wallet_key = str(uuid.uuid4())
+        wallet_key = uuid.uuid4()
         wallet = Wallet(uuid=wallet_key, balance=balance)
         db.add(wallet)
         await db.commit()
         return wallet_key
 
 
+@pytest.mark.asyncio
 async def test_get_existing_wallet(client):
     """Проверка существующего кошелька"""
     wallet_key = await generation_wallets()
@@ -45,6 +46,7 @@ async def test_get_existing_wallet(client):
     assert response.json() == {"balance": 100.0}
 
 
+@pytest.mark.asyncio
 async def test_get_nonexistent_wallet(client):
     """Проверка не существующего кошелька"""
     random_uuid = "00000000-0000-0000-0000-000000000000"
@@ -53,6 +55,7 @@ async def test_get_nonexistent_wallet(client):
     assert response.json()["detail"] == "Wallet not found"
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "operation_type, amount, expected_status, expected_balance",
     [

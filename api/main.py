@@ -1,6 +1,7 @@
 import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from decimal import Decimal
 from uuid import UUID
 from api.database import AsyncSessionLocal
 from api.crud import get_wallet_by_uuid, get_wallet_for_update
@@ -23,7 +24,7 @@ class OperationRequest(BaseModel):
     """
 
     operation_type: str
-    amount: float = Field(..., gt=0, description="Сумма должна быть положительной")
+    amount: Decimal = Field(..., gt=0, description="Сумма должна быть положительной")
 
 
 @app.get("/api/v1/wallets/{wallet_id}")
