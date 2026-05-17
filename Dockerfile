@@ -6,8 +6,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY api/ ./api/
-COPY migrate.py .
+COPY entrypoint.sh .
+COPY alembic.ini .
+COPY migrations ./migrations
 
-RUN python migrate.py
+RUN chmod +x entrypoint.sh
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--post", "8000"]
+ENTRYPOINT ["./entrypoint.sh"]
