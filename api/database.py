@@ -7,14 +7,7 @@ import os
 if not os.getenv("DATABASE_URL"):
     load_dotenv()
 
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
-DB_NAME = os.getenv("DB_NAME")
-
-
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:671952@db:5432/wallet_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:password@db:5432/wallet_db")
 
 engine = create_async_engine(DATABASE_URL)
 AsyncSessionLocal = async_sessionmaker(
