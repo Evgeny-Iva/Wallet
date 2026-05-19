@@ -54,3 +54,7 @@ http://localhost:8000/docs
 - Alembic (миграции)
 - Docker / docker-compose
 - pytest / httpx
+
+## Ветки проекта
+- `main` — стабильная версия (работает, Docker собирается)
+- `alembic` — текущая разработка (может быть нестабильной)
