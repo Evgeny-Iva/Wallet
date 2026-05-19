@@ -35,7 +35,7 @@ async def get_wallet(wallet_id: UUID):
     В случае ошибки возвращает соответсвующий HTTP статус 404
     """
     async with AsyncSessionLocal() as db:
-        wallet = await get_wallet_by_uuid(db, str(wallet_id))
+        wallet = await get_wallet_by_uuid(db, wallet_id)
 
         if not wallet:
             raise HTTPException(status_code=404, detail="Wallet not found")
@@ -55,7 +55,8 @@ async def make_operation(wallet_id: UUID, request: OperationRequest):
     В случае ошибки возвращает соответствующий HTTP статус (404, 400).
     """
     async with AsyncSessionLocal() as db:
-        wallet = await get_wallet_for_update(db, str(wallet_id))
+        await db.begin()
+        wallet = await get_wallet_for_update(db, wallet_id)
 
         if not wallet:
             raise HTTPException(status_code=404, detail="Wallet not found")
@@ -66,7 +67,7 @@ async def make_operation(wallet_id: UUID, request: OperationRequest):
 
         elif operation_type == "WITHDRAW":
             if request.amount > wallet.balance:
-                raise HTTPException(status_code=400, detail="Insufficient funds")
+                raise HTTPException(status_code=402, detail="Insufficient funds")
             wallet.balance -= request.amount
 
         else:
