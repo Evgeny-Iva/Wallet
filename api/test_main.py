@@ -61,7 +61,7 @@ async def test_get_nonexistent_wallet(client):
     [
         ("DEPOSIT", 50.0, 200, 150.0),
         ("WITHDRAW", 50.0, 200, 50.0),
-        ("WITHDRAW", 1000.0, 400, None),
+        ("WITHDRAW", 1000.0, 402, "Insufficient funds"),
     ],
 )
 async def test_make_operation(
@@ -76,7 +76,7 @@ async def test_make_operation(
     )
 
     assert response.status_code == expected_status
-    if expected_balance is not None:
+    if not isinstance(expected_balance, str):
         assert response.json() == {"balance": expected_balance}
     else:
         assert response.json()["detail"] == "Insufficient funds"
