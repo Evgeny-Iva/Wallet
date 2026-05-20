@@ -27,7 +27,6 @@ config.set_main_option(
     os.getenv('SYNC_DATABASE_URL', 'postgresql://postgres:password@db:5432/wallet_db')
 )
 
-fileConfig(config.config_file_name)
 target_metadata = Base.metadata
 
 # Interpret the config file for Python logging.
