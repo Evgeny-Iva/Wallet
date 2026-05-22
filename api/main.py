@@ -5,6 +5,8 @@ from decimal import Decimal
 from uuid import UUID
 from api.database import AsyncSessionLocal
 from api.crud import get_wallet_by_uuid, get_wallet_for_update
+from sqlalchemy.exc import OperationalError
+from api.config import settings
 
 
 logging.basicConfig(
@@ -12,7 +14,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+app = FastAPI(debug=settings.DEBUG)
 
 
 class OperationRequest(BaseModel):
@@ -52,11 +54,17 @@ async def make_operation(wallet_id: UUID, request: OperationRequest):
     - WITHDRAW: уменьшает баланс (с проверкой достаточности средств)
 
     В случае успеха возвращает обновлённый баланс.
-    В случае ошибки возвращает соответствующий HTTP статус (404, 400).
+    В случае ошибки возвращает соответствующий HTTP статус (400, 402, 404, 409).
     """
     async with AsyncSessionLocal() as db:
         await db.begin()
-        wallet = await get_wallet_for_update(db, wallet_id)
+
+        try:
+            wallet = await get_wallet_for_update(db, wallet_id)
+        except OperationalError as e:
+            if "could not obtain lock" in str(e):
+                raise HTTPException(status_code=409, detail="Wallet is busy, please retry")
+            raise
 
         if not wallet:
             raise HTTPException(status_code=404, detail="Wallet not found")

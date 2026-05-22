@@ -1,6 +1,8 @@
+import asyncio
 import pytest
 import pytest_asyncio
 import uuid
+
 from api.main import app
 from api.database import AsyncSessionLocal, engine
 from api.model import Wallet
@@ -27,7 +29,7 @@ async def client():
     await engine.dispose()
 
 
-async def generation_wallets(balance=100.0):
+async def wallets_generation(balance=100.0):
     """Создаем уникальный uuid для тестов"""
     async with AsyncSessionLocal() as db:
         wallet_key = uuid.uuid4()
@@ -40,7 +42,7 @@ async def generation_wallets(balance=100.0):
 @pytest.mark.asyncio
 async def test_get_existing_wallet(client):
     """Проверка существующего кошелька"""
-    wallet_key = await generation_wallets()
+    wallet_key = await wallets_generation()
     response = await client.get(f"/api/v1/wallets/{wallet_key}")
     assert response.status_code == 200
     assert response.json() == {"balance": 100.0}
@@ -68,7 +70,7 @@ async def test_make_operation(
     client, operation_type, amount, expected_status, expected_balance
 ):
     """Проверяем операции с балансом"""
-    wallet_key = await generation_wallets()
+    wallet_key = await wallets_generation()
 
     response = await client.post(
         f"/api/v1/wallets/{wallet_key}/operation",
@@ -80,3 +82,21 @@ async def test_make_operation(
         assert response.json() == {"balance": expected_balance}
     else:
         assert response.json()["detail"] == "Insufficient funds"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_withdraw():
+    """Два параллельных списания не должны срабатывать одновременно"""
+    wallet_key = await wallets_generation()
+
+    async def withdraw():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            return await client.post(
+                f"/api/v1/wallets/{wallet_key}/operation",
+                json={"operation_type": "WITHDRAW", "amount": 100}
+            )
+
+    results = await asyncio.gather(withdraw(), withdraw())
+
+    success_count = sum(1 for r in results if r.status_code == 200)
+    assert success_count == 1

@@ -13,6 +13,6 @@ async def get_wallet_by_uuid(db: AsyncSession, wallet_uuid: UUID):
 async def get_wallet_for_update(db: AsyncSession, wallet_uuid: UUID):
     """Находит кошелёк по UUID с блокировкой строки для UPDATE."""
     result = await db.execute(
-        select(Wallet).where(Wallet.uuid == wallet_uuid).with_for_update()
+        select(Wallet).where(Wallet.uuid == wallet_uuid).with_for_update(nowait=True)
     )
     return result.scalar_one_or_none()

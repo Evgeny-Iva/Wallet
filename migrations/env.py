@@ -18,21 +18,21 @@ load_dotenv()
 
 sys.path.append(str(Path(__file__).parent.parent))
 
+from api.config import settings
 from api.database import Base
 
 config = context.config
 
-config.set_main_option(
-    'sqlalchemy.url',
-    os.getenv('SYNC_DATABASE_URL', 'postgresql://postgres:password@db:5432/wallet_db')
-)
+config.set_main_option('sqlalchemy.url', settings.SYNC_DATABASE_URL)
+
+if config.config_file_name:
+    fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+
 
 # add your model's MetaData object here
 # for 'autogenerate' support
