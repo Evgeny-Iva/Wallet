@@ -41,6 +41,9 @@ class OperationRequest(BaseModel):
     """
     Схема запроса для операций с кошельком
 
+    Пример:
+    {"operation_type": "DEPOSIT", "amount": 100}
+
     - operation_type: тип операции (DEPOSIT или WITHDRAW)
     - amount: сумма операции (положительное число)
     """
@@ -50,11 +53,18 @@ class OperationRequest(BaseModel):
 
 
 @app.get("/api/v1/wallets/{wallet_id}")
-async def get_wallet(wallet_id: UUID):
+async def get_wallet(wallet_id: UUID) -> dict[str, Decimal]:
     """
     Находит кошелек по uuid и возвращает баланс
 
-    В случае ошибки возвращает соответсвующий HTTP статус 404
+    Пример запроса:
+    GET /api/v1/wallets/123e4567-e89b-12d3-a456-426614174000
+
+    Успешный ответ (200):
+    {"balance": 100.50}
+
+    Ошибки:
+    - 404: Кошелек не найден
     """
     async with AsyncSessionLocal() as db:
         wallet = await get_wallet_by_uuid(db, wallet_id)
@@ -66,15 +76,24 @@ async def get_wallet(wallet_id: UUID):
 
 
 @app.post("/api/v1/wallets/{wallet_id}/operation")
-async def make_operation(wallet_id: UUID, request: OperationRequest):
+async def make_operation(wallet_id: UUID, request: OperationRequest) -> dict[str, Decimal]:
     """
     Выполняет операцию пополнения (DEPOSIT) или снятия (WITHDRAW) с кошелька.
 
     - DEPOSIT: увеличивает баланс
     - WITHDRAW: уменьшает баланс (с проверкой достаточности средств)
 
-    В случае успеха возвращает обновлённый баланс.
-    В случае ошибки возвращает соответствующий HTTP статус (400, 402, 404, 409).
+    Пример запроса:
+    {"operation_type": "DEPOSIT", "amount": 100}
+
+    Успешный ответ (200):
+    {"balance": 200.00}
+
+    Ошибки:
+    - 400: Неверный тип операции (DEPOSIT/WITHDRAW)
+    - 402: Недостаточно средств
+    - 404: Кошелек не найден
+    - 409: Кошелек заблокирован
     """
     async with AsyncSessionLocal() as db:
         await db.begin()

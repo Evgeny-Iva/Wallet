@@ -22,7 +22,14 @@ async def get_wallet_by_uuid(db: AsyncSession, wallet_uuid: UUID) -> Wallet | No
 
 
 async def get_wallet_for_update(db: AsyncSession, wallet_uuid: UUID) -> Wallet | None:
-    """Находит кошелёк по UUID с блокировкой строки для UPDATE."""
+    """
+    Находит кошелёк по UUID с блокировкой строки для UPDATE.
+
+    Использует nowait=True — если строка уже заблокирована,
+    сразу вызывает ошибку вместо ожидания.
+
+    Возвращает объект Wallet или None, если не найден.
+    """
     try:
         result = await db.execute(
             select(Wallet).where(Wallet.uuid == wallet_uuid).with_for_update(nowait=True)
