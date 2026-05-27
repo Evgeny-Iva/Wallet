@@ -1,3 +1,4 @@
+import os
 import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -7,11 +8,30 @@ from api.database import AsyncSessionLocal
 from api.crud import get_wallet_by_uuid, get_wallet_for_update
 from sqlalchemy.exc import OperationalError
 from api.config import settings
+from logging.handlers import RotatingFileHandler
 
+
+log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+os.makedirs("logs", exist_ok=True)
+
+file_handler = RotatingFileHandler(
+    settings.LOG_FILE,
+    maxBytes=20000000,
+    backupCount=5,
+    encoding="utf-8"
+)
+file_handler.setFormatter(logging.Formatter(log_format))
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter(log_format))
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=getattr(logging, settings.LOG_LEVEL),
+    handlers=[file_handler, console_handler],
+    format=log_format
 )
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI(debug=settings.DEBUG)

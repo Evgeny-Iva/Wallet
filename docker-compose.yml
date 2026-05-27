@@ -11,6 +11,8 @@ services:
     environment:
       POSTGRES_HOST: db
       DB_HOST: db
+    volumes:
+      - ./logs:/app/logs
 
   db:
     image: postgres:15
