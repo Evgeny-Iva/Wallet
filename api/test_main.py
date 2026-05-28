@@ -100,3 +100,22 @@ async def test_concurrent_withdraw():
 
     success_count = sum(1 for r in results if r.status_code == 200)
     assert success_count == 1
+
+
+@pytest.mark.asyncio
+async def test_get_wallet_invalid_uuid(client):
+    """Проверка, что API возвращает 422 на невалидный UUID"""
+    response = await client.get("/api/v1/wallets/not-a-uuid")
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Input should be a valid UUID"
+
+
+@pytest.mark.asyncio
+async def test_operation_invalid_uuid(client):
+    """Проверка, что операция возвращает 422 на невалидный UUID"""
+    response = await client.post(
+        "/api/v1/wallets/not-a-uuid/operation",
+        json={"operation_type": "DEPOSIT", "amount": 100}
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Input should be a valid UUID"
