@@ -1,3 +1,4 @@
+import os
 import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -5,19 +6,43 @@ from decimal import Decimal
 from uuid import UUID
 from api.database import AsyncSessionLocal
 from api.crud import get_wallet_by_uuid, get_wallet_for_update
+from sqlalchemy.exc import OperationalError
+from api.config import settings
+from logging.handlers import RotatingFileHandler
 
+
+log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+os.makedirs("logs", exist_ok=True)
+
+file_handler = RotatingFileHandler(
+    settings.LOG_FILE,
+    maxBytes=20000000,
+    backupCount=5,
+    encoding="utf-8"
+)
+file_handler.setFormatter(logging.Formatter(log_format))
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter(log_format))
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=getattr(logging, settings.LOG_LEVEL),
+    handlers=[file_handler, console_handler],
+    format=log_format
 )
+
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+app = FastAPI(debug=settings.DEBUG)
 
 
 class OperationRequest(BaseModel):
     """
     Схема запроса для операций с кошельком
+
+    Пример:
+    {"operation_type": "DEPOSIT", "amount": 100}
 
     - operation_type: тип операции (DEPOSIT или WITHDRAW)
     - amount: сумма операции (положительное число)
@@ -28,14 +53,21 @@ class OperationRequest(BaseModel):
 
 
 @app.get("/api/v1/wallets/{wallet_id}")
-async def get_wallet(wallet_id: UUID):
+async def get_wallet(wallet_id: UUID) -> dict[str, Decimal]:
     """
     Находит кошелек по uuid и возвращает баланс
 
-    В случае ошибки возвращает соответсвующий HTTP статус 404
+    Пример запроса:
+    GET /api/v1/wallets/123e4567-e89b-12d3-a456-426614174000
+
+    Успешный ответ (200):
+    {"balance": 100.50}
+
+    Ошибки:
+    - 404: Кошелек не найден
     """
     async with AsyncSessionLocal() as db:
-        wallet = await get_wallet_by_uuid(db, str(wallet_id))
+        wallet = await get_wallet_by_uuid(db, wallet_id)
 
         if not wallet:
             raise HTTPException(status_code=404, detail="Wallet not found")
@@ -44,18 +76,34 @@ async def get_wallet(wallet_id: UUID):
 
 
 @app.post("/api/v1/wallets/{wallet_id}/operation")
-async def make_operation(wallet_id: UUID, request: OperationRequest):
+async def make_operation(wallet_id: UUID, request: OperationRequest) -> dict[str, Decimal]:
     """
     Выполняет операцию пополнения (DEPOSIT) или снятия (WITHDRAW) с кошелька.
 
     - DEPOSIT: увеличивает баланс
     - WITHDRAW: уменьшает баланс (с проверкой достаточности средств)
 
-    В случае успеха возвращает обновлённый баланс.
-    В случае ошибки возвращает соответствующий HTTP статус (404, 400).
+    Пример запроса:
+    {"operation_type": "DEPOSIT", "amount": 100}
+
+    Успешный ответ (200):
+    {"balance": 200.00}
+
+    Ошибки:
+    - 400: Неверный тип операции (DEPOSIT/WITHDRAW)
+    - 402: Недостаточно средств
+    - 404: Кошелек не найден
+    - 409: Кошелек заблокирован
     """
     async with AsyncSessionLocal() as db:
-        wallet = await get_wallet_for_update(db, str(wallet_id))
+        await db.begin()
+
+        try:
+            wallet = await get_wallet_for_update(db, wallet_id)
+        except OperationalError as e:
+            if "could not obtain lock" in str(e):
+                raise HTTPException(status_code=409, detail="Wallet is busy, please retry")
+            raise
 
         if not wallet:
             raise HTTPException(status_code=404, detail="Wallet not found")
@@ -66,7 +114,7 @@ async def make_operation(wallet_id: UUID, request: OperationRequest):
 
         elif operation_type == "WITHDRAW":
             if request.amount > wallet.balance:
-                raise HTTPException(status_code=400, detail="Insufficient funds")
+                raise HTTPException(status_code=402, detail="Insufficient funds")
             wallet.balance -= request.amount
 
         else:
