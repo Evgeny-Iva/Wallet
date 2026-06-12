@@ -106,6 +106,7 @@ async def test_operation_invalid_uuid(client):
 
 @pytest.mark.asyncio
 async def test_concurrent_deposit_withdraw(client):
+    """Проверка, на конкурентность"""
     wallet_key = await wallets_generation()
 
     async def deposit():
