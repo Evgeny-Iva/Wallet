@@ -38,5 +38,6 @@ class User(Base):
     middle_name = Column(String, nullable=True, comment='Отчество пользователя')
     email = Column(String, unique=True, index=True, nullable=False, comment='Электронная почта пользователя')
     created_at = Column(DateTime, server_default=func.now(), comment='Дата создания профиля')
+    password_hash = Column(String, nullable=False, comment='Хеш пароля')
 
     wallets = relationship("wallet", back_populates="User")
