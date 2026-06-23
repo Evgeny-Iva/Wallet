@@ -1,0 +1,42 @@
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+from api.database import get_db, AsyncSession
+from api.model import User
+from pydantic import BaseModel
+from api.hashing import hash_password
+
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+class UserCreate(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    password: str
+
+
+@router.post("/register")
+async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(User).filter_by(email=user_data.email)
+    )
+    existing_user = result.scalar_one_or_none()
+
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    hashed = hash_password(user_data.password)
+    new_user = User(
+        first_name=user_data.first_name,
+        last_name=user_data.last_name,
+        email=user_data.email,
+        password_hash=hashed
+    )
+
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+
+    return {"massage": "User created", "user_id": new_user.id}
