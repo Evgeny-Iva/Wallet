@@ -4,7 +4,7 @@ from sqlalchemy import select
 from api.database import get_db, AsyncSession
 from api.model import User
 from pydantic import BaseModel
-from api.hashing import hash_password
+from api.hashing import hash_password, verify_password
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -13,6 +13,11 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 class UserCreate(BaseModel):
     first_name: str
     last_name: str
+    email: str
+    password: str
+
+
+class UserLogin(BaseModel):
     email: str
     password: str
 
@@ -40,3 +45,21 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.refresh(new_user)
 
     return {"massage": "User created", "user_id": new_user.id}
+
+
+@router.post("/login")
+async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(User).filter_by(email=user_data.email)
+    )
+    existing_user = result.scalar_one_or_none()
+
+    if not existing_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    is_password_valid = verify_password(user_data.password, existing_user.password_hash)
+
+    if not is_password_valid:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    return {"access_token": "fake-token", "token_type": "bearer"}
