@@ -13,6 +13,7 @@ services:
       DB_HOST: db
     volumes:
       - ./logs:/app/logs
+      - ./migrations:/app/migrations
 
   db:
     image: postgres:15

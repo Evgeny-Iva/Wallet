@@ -40,4 +40,4 @@ class User(Base):
     created_at = Column(DateTime, server_default=func.now(), comment='Дата создания профиля')
     password_hash = Column(String, nullable=False, comment='Хеш пароля')
 
-    wallets = relationship("Wallet", back_populates="User")
+    wallets = relationship("Wallet", back_populates="user")

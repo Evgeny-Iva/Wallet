@@ -3,6 +3,10 @@ from sqlalchemy.orm import declarative_base
 from api.config import settings
 
 
+Base = declarative_base()
+
+from api.model import User, Wallet
+
 engine = create_async_engine(
     settings.DATABASE_URL,
     pool_size=settings.DB_POOL_SIZE,
@@ -16,7 +20,6 @@ engine = create_async_engine(
 AsyncSessionLocal = async_sessionmaker(
     engine, expire_on_commit=False, class_=AsyncSession
 )
-Base = declarative_base()
 
 async def get_db():
     async with AsyncSessionLocal() as session:
