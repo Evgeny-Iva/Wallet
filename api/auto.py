@@ -5,6 +5,7 @@ from api.database import get_db, AsyncSession
 from api.model import User
 from pydantic import BaseModel
 from api.hashing import hash_password, verify_password
+from api.jwt import create_access_token
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -62,4 +63,9 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
     if not is_password_valid:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    return {"access_token": "fake-token", "token_type": "bearer"}
+    return {"access_token": create_access_token(existing_user.id), "token_type": "bearer"}
+
+
+@router.post("/logout")
+async def logout():
+    return {"message": "Logged out"}

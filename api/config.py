@@ -5,7 +5,7 @@ load_dotenv()
 
 
 class Settings:
-    """Все настройки приложения в одном месте"""
+    """Все настройки приложения"""
 
     DB_USER: str = os.getenv("DB_USER", "postgres")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
@@ -38,6 +38,8 @@ class Settings:
 
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_FILE: str = os.getenv("LOG_FILE", "logs/app.log")
+
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
 
 
 settings = Settings()
