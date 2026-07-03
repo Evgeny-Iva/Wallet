@@ -2,11 +2,13 @@ from fastapi import APIRouter, HTTPException, Depends, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from api.database import get_db, AsyncSession
+from api.dependencies import get_current_user
 from api.model import User
 from pydantic import BaseModel
 from api.hashing import hash_password, verify_password
 from api.jwt import create_access_token
 from api.blacklist import add_to_blacklist
+from api.config import settings
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -68,7 +70,10 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/logout")
-async def logout(authorization: str = Header(...)):
+async def logout(
+        current_user: User = Depends(get_current_user),
+        authorization: str = Header(...)
+):
     token = authorization.replace("Bearer ", "")
-    add_to_blacklist(token, expires_in=3600)
+    add_to_blacklist(token, settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
     return {"message": "Logged out"}

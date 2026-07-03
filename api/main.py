@@ -8,6 +8,7 @@ from api.database import AsyncSessionLocal
 from api.crud import get_wallet_by_uuid, get_wallet_for_update
 from api.auto import router as auth_router
 from api.config import settings
+from api.users import router as users_router
 from sqlalchemy.exc import OperationalError
 from logging.handlers import RotatingFileHandler
 
@@ -38,6 +39,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(debug=settings.DEBUG)
 
 app.include_router(auth_router)
+app.include_router(users_router)
 
 class OperationRequest(BaseModel):
     """
