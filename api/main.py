@@ -6,9 +6,9 @@ from decimal import Decimal
 from uuid import UUID
 from api.database import AsyncSessionLocal
 from api.crud import get_wallet_by_uuid, get_wallet_for_update
-from api.auto import router as auth_router
+from api.routers.auto import router as auth_router
 from api.config import settings
-from api.users import router as users_router
+from api.routers.users import router as users_router
 from sqlalchemy.exc import OperationalError
 from logging.handlers import RotatingFileHandler
 

@@ -1,5 +1,4 @@
-import api.redis_client
-from api.redis_client import redis_client
+from api.core.redis_client import redis_client
 
 
 def add_to_blacklist(token: str, expires: int) -> None:

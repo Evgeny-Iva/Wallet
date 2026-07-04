@@ -2,7 +2,7 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import select
-from api.model import Wallet
+from api.models.wallet import Wallet
 from uuid import UUID
 
 

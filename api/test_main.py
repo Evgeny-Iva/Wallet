@@ -5,7 +5,7 @@ import uuid
 
 from api.main import app
 from api.database import AsyncSessionLocal, engine
-from api.model import Wallet
+from api.models.wallet import Wallet
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import delete
 from decimal import Decimal

@@ -1,8 +1,8 @@
 from fastapi import Header, HTTPException, Depends
 from jose import jwt
 from api.config import settings
-from api.blacklist import is_token_blacklisted
-from api.model import User
+from api.core.blacklist import is_token_blacklisted
+from api.models.user import User
 from api.database import get_db, AsyncSession
 from sqlalchemy import select
 
