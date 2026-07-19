@@ -1,27 +1,16 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
+from api.models.user import User
 from sqlalchemy import select
 from api.database import get_db, AsyncSession
 from api.dependencies.dependencies import get_current_user
-from pydantic import BaseModel
 from api.core.hashing import hash_password, verify_password
 from api.core.jwt import create_access_token
 from api.core.blacklist import add_to_blacklist
 from api.config import settings
+from api.schemas.user import UserLogin, UserCreate
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-class UserCreate(BaseModel):
-    first_name: str
-    last_name: str
-    email: str
-    password: str
-
-
-class UserLogin(BaseModel):
-    email: str
-    password: str
 
 
 @router.post("/register")
