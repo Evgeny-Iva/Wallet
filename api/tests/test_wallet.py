@@ -4,30 +4,10 @@ import pytest_asyncio
 import uuid
 
 from api.main import app
-from api.database import AsyncSessionLocal, engine
+from api.database import AsyncSessionLocal
 from api.models.wallet import Wallet
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy import delete
 from decimal import Decimal
-
-
-@pytest_asyncio.fixture
-async def client():
-    """Фикстура для тестового клиента"""
-    async with engine.begin() as conn:
-        from api.database import Base
-
-        await conn.run_sync(Base.metadata.create_all)
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
-
-    async with engine.begin() as conn:
-        await conn.execute(delete(Wallet))
-        await conn.commit()
-
-    await engine.dispose()
+from conftest import client
 
 
 async def wallets_generation(balance=Decimal("100.00")):
