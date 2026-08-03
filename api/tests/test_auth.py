@@ -48,10 +48,56 @@ async def test_login_success(client):
     assert response.status_code == 200
 
     login_data = {"email": user_data["email"], "password": user_data["password"]}
-    login_response = await client.posta("/auth/login", json=login_data)
+    login_response = await client.post("/auth/login", json=login_data)
     assert login_response.status_code == 200
 
     data = login_response.json()
     assert "access_token" in data
     assert data["token_type"] == "bearer"
     assert data["access_token"] != ""
+
+
+async def test_login_wrong_password(client):
+    response, user_data = await register_test_user(client)
+
+    assert response.status_code == 200
+
+    login_data = {"email": user_data["email"], "password": "password"}
+    login_response = await client.post("/auth/login", json=login_data)
+    assert login_response.status_code == 401
+    assert login_response.json()["detail"] == "Unauthorized"
+
+
+async def test_login_user_not_found(client):
+    login_data = {"email": "test@example.com", "password": "secret123"}
+    login_response = await client.post("/auth/login", json=login_data)
+    assert login_response.status_code == 404
+    assert login_response.json()["detail"] == "Not Found"
+
+
+async def test_me_unauthorized(client):
+    login_response = await client.post("/users/me")
+    assert login_response.status_code == 401
+    assert login_response.json()["detail"] == "Not authenticated"
+
+
+async def test_me_success(client):
+    response, user_data = await register_test_user(client)
+
+    assert response.status_code == 200
+
+    login_data = {"email": user_data["email"], "password": user_data["password"]}
+    login_response = await client.post("/users/me", json=login_data)
+    assert login_response.status_code == 200
+    token = login_response.json()["access_token"]
+
+    headers = {"Authorization": f"Bearer {token}"}
+    me_response = await client.get("/users/me", headers=headers)
+    assert me_response.status_code == 200
+
+    me_data = me_response.json()
+    assert me_data["email"] == user_data["email"]
+    assert me_data["first_name"] == user_data["first_name"]
+    assert me_data["last_name"] == user_data["last_name"]
+    assert "id" in me_data
+    assert "created_at" in me_data
