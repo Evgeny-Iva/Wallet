@@ -117,5 +117,8 @@ async def test_logout_success(client):
 
     headers = {"Authorization": f"Bearer {token}"}
     logout_response = await client.post("/auth/logout", headers=headers)
+    assert logout_response.status_code == 200
+    assert logout_response.json().get("message") == "Successfully logged out"
+
     me_response = await client.get("/users/me", headers=headers)
     assert me_response.status_code == 401
