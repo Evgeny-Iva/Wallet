@@ -33,7 +33,6 @@ async def test_register_success(client):
 async def test_register_duplicate_email(client):
     """Проверяет повторное создания пользователя по одному email"""
     response_first, user_data = await register_test_user(client)
-
     assert response_first.status_code == 200
 
     response_second = await client.post("/auth/register", json=user_data)
@@ -44,7 +43,6 @@ async def test_register_duplicate_email(client):
 async def test_login_success(client):
     """Логин с верным паролем"""
     response, user_data = await register_test_user(client)
-
     assert response.status_code == 200
 
     login_data = {"email": user_data["email"], "password": user_data["password"]}
@@ -58,8 +56,8 @@ async def test_login_success(client):
 
 
 async def test_login_wrong_password(client):
+    """Тест авторизации с не правильным паролем"""
     response, user_data = await register_test_user(client)
-
     assert response.status_code == 200
 
     login_data = {"email": user_data["email"], "password": "password"}
@@ -69,6 +67,7 @@ async def test_login_wrong_password(client):
 
 
 async def test_login_user_not_found(client):
+    """Тест на не существующего пользователя"""
     login_data = {"email": "test@example.com", "password": "secret123"}
     login_response = await client.post("/auth/login", json=login_data)
     assert login_response.status_code == 404
@@ -76,14 +75,15 @@ async def test_login_user_not_found(client):
 
 
 async def test_me_unauthorized(client):
+    """Тест на проверку получения данных будучи не авторизованным"""
     login_response = await client.post("/users/me")
     assert login_response.status_code == 401
     assert login_response.json()["detail"] == "Not authenticated"
 
 
 async def test_me_success(client):
+    """Тест на получение данных авторизованным пользователем"""
     response, user_data = await register_test_user(client)
-
     assert response.status_code == 200
 
     login_data = {"email": user_data["email"], "password": user_data["password"]}
@@ -101,3 +101,21 @@ async def test_me_success(client):
     assert me_data["last_name"] == user_data["last_name"]
     assert "id" in me_data
     assert "created_at" in me_data
+
+
+async def test_logout_success(client):
+    """Тест на выход из профиля"""
+    response, user_data = await register_test_user(client)
+    assert response.status_code == 200
+
+    login_data = {"email": user_data["email"], "password": user_data["password"]}
+    login_response = await client.post("/auth/login", json=login_data)
+    assert login_response.status_code == 200
+
+    data = login_response.json()
+    token = data["access_token"]
+
+    headers = {"Authorization": f"Bearer {token}"}
+    logout_response = await client.post("/auth/logout", headers=headers)
+    me_response = await client.get("/users/me", headers=headers)
+    assert me_response.status_code == 401
