@@ -23,6 +23,18 @@ class Settings:
         """Синхронный URL для миграций (psycopg2)"""
         return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_DB: int = int(os.getenv("REDIS_DB", "0"))
+    REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "")
+
+    @property
+    def REDIS_URL(self) -> str:
+        """URL для подключения к Redis"""
+        if self.REDIS_PASSWORD:
+            return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
     APP_HOST: str = os.getenv("APP_HOST", "0.0.0.0")
     APP_PORT: int = int(os.getenv("APP_PORT", "8000"))
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
@@ -39,7 +51,7 @@ class Settings:
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_FILE: str = os.getenv("LOG_FILE", "logs/app.log")
 
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "test-secret-key-for-jwt")
 
 
 settings = Settings()

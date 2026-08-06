@@ -7,7 +7,6 @@ from api.main import app
 from api.database import AsyncSessionLocal
 from api.models.wallet import Wallet
 from decimal import Decimal
-from conftest import client
 
 
 async def wallets_generation(balance=Decimal("100.00")):

@@ -1,7 +1,8 @@
-from conftest import client
+import pytest
 import pytest_asyncio
 
 
+@pytest.mark.asyncio
 async def register_test_user(client):
     """Создаем пользователя для использования в тестах"""
     user_data = {
@@ -15,6 +16,7 @@ async def register_test_user(client):
 
 
 
+@pytest.mark.asyncio
 async def test_register_success(client):
     """Проверяет создание нового пользователя"""
     user_data = {
@@ -30,6 +32,7 @@ async def test_register_success(client):
     assert "user_id" in data
 
 
+@pytest.mark.asyncio
 async def test_register_duplicate_email(client):
     """Проверяет повторное создания пользователя по одному email"""
     response_first, user_data = await register_test_user(client)
@@ -40,6 +43,7 @@ async def test_register_duplicate_email(client):
     assert response_second.json()["detail"] == "Email already register"
 
 
+@pytest.mark.asyncio
 async def test_login_success(client):
     """Логин с верным паролем"""
     response, user_data = await register_test_user(client)
@@ -55,6 +59,7 @@ async def test_login_success(client):
     assert data["access_token"] != ""
 
 
+@pytest.mark.asyncio
 async def test_login_wrong_password(client):
     """Тест авторизации с не правильным паролем"""
     response, user_data = await register_test_user(client)
@@ -66,6 +71,7 @@ async def test_login_wrong_password(client):
     assert login_response.json()["detail"] == "Unauthorized"
 
 
+@pytest.mark.asyncio
 async def test_login_user_not_found(client):
     """Тест на не существующего пользователя"""
     login_data = {"email": "test@example.com", "password": "secret123"}
@@ -74,6 +80,7 @@ async def test_login_user_not_found(client):
     assert login_response.json()["detail"] == "Not Found"
 
 
+@pytest.mark.asyncio
 async def test_me_unauthorized(client):
     """Тест на проверку получения данных будучи не авторизованным"""
     login_response = await client.post("/users/me")
@@ -81,6 +88,7 @@ async def test_me_unauthorized(client):
     assert login_response.json()["detail"] == "Not authenticated"
 
 
+@pytest.mark.asyncio
 async def test_me_success(client):
     """Тест на получение данных авторизованным пользователем"""
     response, user_data = await register_test_user(client)
@@ -103,6 +111,7 @@ async def test_me_success(client):
     assert "created_at" in me_data
 
 
+@pytest.mark.asyncio
 async def test_logout_success(client):
     """Тест на выход из профиля"""
     response, user_data = await register_test_user(client)
