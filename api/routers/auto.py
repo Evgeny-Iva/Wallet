@@ -35,7 +35,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(new_user)
 
-    return {"massage": "User created", "user_id": new_user.id}
+    return {"message": "User created", "user_id": new_user.id}
 
 
 @router.post("/login")

@@ -40,7 +40,7 @@ async def test_register_duplicate_email(client):
 
     response_second = await client.post("/auth/register", json=user_data)
     assert response_second.status_code == 400
-    assert response_second.json()["detail"] == "Email already register"
+    assert response_second.json()["detail"] == "Email already registered"
 
 
 @pytest.mark.asyncio
@@ -76,16 +76,16 @@ async def test_login_user_not_found(client):
     """Тест на не существующего пользователя"""
     login_data = {"email": "test@example.com", "password": "secret123"}
     login_response = await client.post("/auth/login", json=login_data)
-    assert login_response.status_code == 404
-    assert login_response.json()["detail"] == "Not Found"
+    assert login_response.status_code == 401
+    assert login_response.json()["detail"] == "Unauthorized"
 
 
 @pytest.mark.asyncio
 async def test_me_unauthorized(client):
     """Тест на проверку получения данных будучи не авторизованным"""
-    login_response = await client.post("/users/me")
-    assert login_response.status_code == 401
-    assert login_response.json()["detail"] == "Not authenticated"
+    response = await client.get("/users/me")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
 
 
 @pytest.mark.asyncio
@@ -95,7 +95,7 @@ async def test_me_success(client):
     assert response.status_code == 200
 
     login_data = {"email": user_data["email"], "password": user_data["password"]}
-    login_response = await client.post("/users/me", json=login_data)
+    login_response = await client.post("/auth/login", json=login_data)
     assert login_response.status_code == 200
     token = login_response.json()["access_token"]
 
@@ -127,7 +127,7 @@ async def test_logout_success(client):
     headers = {"Authorization": f"Bearer {token}"}
     logout_response = await client.post("/auth/logout", headers=headers)
     assert logout_response.status_code == 200
-    assert logout_response.json().get("message") == "Successfully logged out"
+    assert logout_response.json().get("message") == "Logged out"
 
     me_response = await client.get("/users/me", headers=headers)
     assert me_response.status_code == 401
