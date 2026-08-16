@@ -1,4 +1,6 @@
+import pytest
 import pytest_asyncio
+import uuid
 
 from api.main import app
 from api.database import engine
@@ -29,3 +31,32 @@ async def client():
         await conn.commit()
 
     await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def test_user(client):
+    """Фикстура создает тестового пользователя и возвращает его данные"""
+    user_data = {
+        "first_name": "Test",
+        "last_name": "User",
+        "email": f"{uuid.uuid4()}@example.com",
+        "password": "secret123"
+    }
+    response = await client.post("/auth/register", json=user_data)
+    assert response.status_code == 200
+    return user_data
+
+
+@pytest_asyncio.fixture
+async def auth_token(client, test_user):
+    """Фикстура создает пользователя и возвращает токен"""
+    login_data = {"email": test_user["email"], "password": test_user["password"]}
+    response = await client.post("/auth/login", json=login_data)
+    assert response.status_code == 200
+    return response.json()["access_token"]
+
+
+@pytest_asyncio.fixture
+async def auth_handlers(auth_token):
+    """Фикстура возвращает заголовок токена"""
+    return {"Authorization": f"Bearer {auth_token}"}

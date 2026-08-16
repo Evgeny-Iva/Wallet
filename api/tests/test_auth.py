@@ -1,19 +1,7 @@
 import pytest
-import pytest_asyncio
+import uuid
 
-
-@pytest.mark.asyncio
-async def register_test_user(client):
-    """Создаем пользователя для использования в тестах"""
-    user_data = {
-        "first_name": "Test",
-        "last_name": "User",
-        "email": "test@example.com",
-        "password": "secret123"
-    }
-    response = await client.post("/auth/register", json=user_data)
-    return response, user_data
-
+from api.tests.conftest import test_user
 
 
 @pytest.mark.asyncio
@@ -33,9 +21,15 @@ async def test_register_success(client):
 
 
 @pytest.mark.asyncio
-async def test_register_duplicate_email(client):
+async def test_register_duplicate_email(client, test_user):
     """Проверяет повторное создания пользователя по одному email"""
-    response_first, user_data = await register_test_user(client)
+    user_data = {
+        "first_name": "Test",
+        "last_name": "User",
+        "email": "test_duplicate@example.com",
+        "password": "secret123"
+    }
+    response_first = await client.post("/auth/register", json=user_data)
     assert response_first.status_code == 200
 
     response_second = await client.post("/auth/register", json=user_data)
@@ -44,12 +38,9 @@ async def test_register_duplicate_email(client):
 
 
 @pytest.mark.asyncio
-async def test_login_success(client):
+async def test_login_success(client, test_user):
     """Логин с верным паролем"""
-    response, user_data = await register_test_user(client)
-    assert response.status_code == 200
-
-    login_data = {"email": user_data["email"], "password": user_data["password"]}
+    login_data = {"email": test_user["email"], "password": test_user["password"]}
     login_response = await client.post("/auth/login", json=login_data)
     assert login_response.status_code == 200
 
@@ -60,12 +51,9 @@ async def test_login_success(client):
 
 
 @pytest.mark.asyncio
-async def test_login_wrong_password(client):
+async def test_login_wrong_password(client, test_user):
     """Тест авторизации с не правильным паролем"""
-    response, user_data = await register_test_user(client)
-    assert response.status_code == 200
-
-    login_data = {"email": user_data["email"], "password": "password"}
+    login_data = {"email": test_user["email"], "password": "password"}
     login_response = await client.post("/auth/login", json=login_data)
     assert login_response.status_code == 401
     assert login_response.json()["detail"] == "Unauthorized"
@@ -89,12 +77,9 @@ async def test_me_unauthorized(client):
 
 
 @pytest.mark.asyncio
-async def test_me_success(client):
+async def test_me_success(client, test_user):
     """Тест на получение данных авторизованным пользователем"""
-    response, user_data = await register_test_user(client)
-    assert response.status_code == 200
-
-    login_data = {"email": user_data["email"], "password": user_data["password"]}
+    login_data = {"email": test_user["email"], "password": test_user["password"]}
     login_response = await client.post("/auth/login", json=login_data)
     assert login_response.status_code == 200
     token = login_response.json()["access_token"]
@@ -104,20 +89,17 @@ async def test_me_success(client):
     assert me_response.status_code == 200
 
     me_data = me_response.json()
-    assert me_data["email"] == user_data["email"]
-    assert me_data["first_name"] == user_data["first_name"]
-    assert me_data["last_name"] == user_data["last_name"]
+    assert me_data["email"] == test_user["email"]
+    assert me_data["first_name"] == test_user["first_name"]
+    assert me_data["last_name"] == test_user["last_name"]
     assert "id" in me_data
     assert "created_at" in me_data
 
 
 @pytest.mark.asyncio
-async def test_logout_success(client):
+async def test_logout_success(client, test_user):
     """Тест на выход из профиля"""
-    response, user_data = await register_test_user(client)
-    assert response.status_code == 200
-
-    login_data = {"email": user_data["email"], "password": user_data["password"]}
+    login_data = {"email": test_user["email"], "password": test_user["password"]}
     login_response = await client.post("/auth/login", json=login_data)
     assert login_response.status_code == 200
 
