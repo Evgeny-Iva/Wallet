@@ -8,6 +8,14 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me")
 async def get_me(current_user: User = Depends(get_current_user)):
+    """
+    Отправляет запрос на получение данных о пользователе
+
+    Пример запроса:
+    GET /api/v1/me
+
+    Успешный ответ(200):
+    """
     return {
         "id": current_user.id,
         "email": current_user.email,

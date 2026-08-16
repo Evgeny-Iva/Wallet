@@ -15,6 +15,27 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register")
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+    """
+    Выполняет операцию по созданию пользователя
+
+    Пример запроса:
+    POST /api/v1/register
+    {
+        "first_name": "Ivan",
+        "last_name": "Ivanov",
+        "email": "Ivan@mail.ru",
+        "password": "secret123"
+    }
+
+    Успешный ответ(200):
+    {
+        "message": "User created",
+        "user_id": "123"
+    }
+
+    Ошибки:
+    - 400: Данная почта уже зарегистрирована
+    """
     result = await db.execute(
         select(User).filter_by(email=user_data.email)
     )
@@ -40,6 +61,26 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login")
 async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
+    """
+    Выполняет операцию по авторизации
+
+    Пример запроса:
+    POST /api/v1/login
+    {
+        "email": "Ivan@mail.ru",
+        "password": "secret123"
+    }
+
+    Успешный ответ(200):
+    {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+        .eyJzdWIiOiIxMjMiLCJleHAiOjE3MjQwMDAwMDB9.abcdef123456",
+        "token_type": "bearer"
+    }
+
+    Ошибки:
+    - 401: Не авторизован
+    """
     result = await db.execute(
         select(User).filter_by(email=user_data.email)
     )
@@ -61,6 +102,22 @@ async def logout(
         current_user: User = Depends(get_current_user),
         authorization: str = Header(...)
 ):
+    """
+    Выполняет операцию по выходу из системы
+
+    Токен добавляется в чёрный список и становится недействительным
+
+    Пример запроса:
+    POST /api/v1/logout
+
+    Успешный ответ(200):
+    {
+        "message": "logged out"
+    }
+
+    Ошибки:
+    - 401: Токен недействителен или отсутствует
+    """
     token = authorization.replace("Bearer ", "")
     add_to_blacklist(token, settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
     return {"message": "Logged out"}
