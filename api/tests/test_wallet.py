@@ -1,38 +1,31 @@
 import asyncio
 import pytest
 import pytest_asyncio
-import uuid
 
-from api.main import app
 from api.database import AsyncSessionLocal
-from api.models.wallet import Wallet
 from decimal import Decimal
-
-
-async def wallets_generation(balance=Decimal("100.00")):
-    """Создаем уникальный uuid для тестов"""
-    async with AsyncSessionLocal() as db:
-        wallet_key = uuid.uuid4()
-        wallet = Wallet(uuid=wallet_key, balance=balance)
-        db.add(wallet)
-        await db.commit()
-        return wallet_key
+from conftest import test_wallet, auth_headers
 
 
 @pytest.mark.asyncio
-async def test_get_existing_wallet(client):
+async def test_get_existing_wallet(client, test_wallet, auth_headers):
     """Проверка существующего кошелька"""
-    wallet_key = await wallets_generation()
-    response = await client.get(f"/api/v1/wallets/{wallet_key}")
+    response = await client.get(
+        f"/api/v1/wallets/{test_wallet}",
+        headers=auth_headers
+    )
     assert response.status_code == 200
     assert response.json() == {"balance": "100.00"}
 
 
 @pytest.mark.asyncio
-async def test_get_nonexistent_wallet(client):
+async def test_get_nonexistent_wallet(client, auth_headers):
     """Проверка не существующего кошелька"""
     random_uuid = "00000000-0000-0000-0000-000000000000"
-    response = await client.get(f"/api/v1/wallets/{random_uuid}")
+    response = await client.get(
+        f"/api/v1/wallets/{random_uuid}",
+        headers=auth_headers
+    )
     assert response.status_code == 404
     assert response.json()["detail"] == "Wallet not found"
 
@@ -47,14 +40,15 @@ async def test_get_nonexistent_wallet(client):
     ],
 )
 async def test_make_operation(
-    client, operation_type, amount, expected_status, expected_balance
+    client, operation_type, amount,
+    expected_status, expected_balance,
+    test_wallet, auth_headers
 ):
     """Проверяем операции с балансом"""
-    wallet_key = await wallets_generation()
-
     response = await client.post(
-        f"/api/v1/wallets/{wallet_key}/operation",
+        f"/api/v1/wallets/{test_wallet}/operation",
         json={"operation_type": operation_type, "amount": amount},
+        headers=auth_headers
     )
 
     assert response.status_code == expected_status
@@ -65,45 +59,50 @@ async def test_make_operation(
 
 
 @pytest.mark.asyncio
-async def test_get_wallet_invalid_uuid(client):
+async def test_get_wallet_invalid_uuid(client, auth_headers):
     """Проверка, что API возвращает 422 на невалидный UUID"""
-    response = await client.get("/api/v1/wallets/not-a-uuid")
-    assert response.status_code == 422
-    assert "valid UUID" in response.json()["detail"][0]["msg"]
-
-
-@pytest.mark.asyncio
-async def test_operation_invalid_uuid(client):
-    """Проверка, что операция возвращает 422 на невалидный UUID"""
-    response = await client.post(
-        "/api/v1/wallets/not-a-uuid/operation",
-        json={"operation_type": "DEPOSIT", "amount": "100.00"}
+    response = await client.get(
+        "/api/v1/wallets/not-a-uuid",
+        headers=auth_headers
     )
     assert response.status_code == 422
     assert "valid UUID" in response.json()["detail"][0]["msg"]
 
 
 @pytest.mark.asyncio
-async def test_concurrent_deposit_withdraw(client):
+async def test_operation_invalid_uuid(client, auth_headers):
+    """Проверка, что операция возвращает 422 на невалидный UUID"""
+    response = await client.post(
+        "/api/v1/wallets/not-a-uuid/operation",
+        json={"operation_type": "DEPOSIT", "amount": "100.00"},
+        headers=auth_headers
+    )
+    assert response.status_code == 422
+    assert "valid UUID" in response.json()["detail"][0]["msg"]
+
+
+@pytest.mark.asyncio
+async def test_concurrent_deposit_withdraw(client, test_wallet, auth_headers):
     """Проверка, на конкурентность"""
-    wallet_key = await wallets_generation()
+    deposit_task = client.post(
+        f"/api/v1/wallets/{test_wallet}/operation",
+        json={"operation_type": "DEPOSIT", "amount": "50.00"},
+        headers=auth_headers
+    )
 
-    async def deposit():
-        return await client.post(
-                f"/api/v1/wallets/{wallet_key}/operation",
-                json={"operation_type": "DEPOSIT", "amount": "50.00"}
-            )
+    withdraw_task = client.post(
+        f"/api/v1/wallets/{test_wallet}/operation",
+        json={"operation_type": "WITHDRAW", "amount": "100.00"},
+        headers=auth_headers
+    )
 
-    async def withdraw():
-        return await client.post(
-                f"/api/v1/wallets/{wallet_key}/operation",
-                json={"operation_type": "WITHDRAW", "amount": "100.00"}
-            )
-
-    results = await asyncio.gather(deposit(), withdraw())
+    results = await asyncio.gather(deposit_task, withdraw_task)
 
     success_count = sum(1 for r in results if r.status_code == 200)
     assert success_count >= 1
 
-    final_balance = await client.get(f"/api/v1/wallets/{wallet_key}")
+    final_balance = await client.get(
+        f"/api/v1/wallets/{test_wallet}",
+        headers=auth_headers
+    )
     assert final_balance.json()["balance"] in ("50.00", '150.00')

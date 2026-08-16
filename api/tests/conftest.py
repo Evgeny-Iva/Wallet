@@ -57,6 +57,15 @@ async def auth_token(client, test_user):
 
 
 @pytest_asyncio.fixture
-async def auth_handlers(auth_token):
+async def auth_headers(auth_token):
     """Фикстура возвращает заголовок токена"""
     return {"Authorization": f"Bearer {auth_token}"}
+
+
+@pytest_asyncio.fixture
+async def test_wallet(client, auth_headers):
+    """Создает тестовый кошелек и возвращает его UUID"""
+    wallet_data = {"currency": "RUB"}
+    response = await client.post("/api/v1/wallets/", json=wallet_data, headers=auth_headers)
+    assert response.status_code == 200
+    return response.json()["wallet_uuid"]
