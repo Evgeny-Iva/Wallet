@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 from decimal import Decimal
+from sqlalchemy.dialects.postgresql import UUID
+
 
 
 class WalletCreated(BaseModel):
@@ -20,3 +22,16 @@ class OperationRequest(BaseModel):
 
     operation_type: str
     amount: Decimal = Field(..., gt=0, description="Сумма должна быть положительной")
+
+
+class TransferRequest(BaseModel):
+    to_wallet_id: UUID
+    amount: Decimal
+    currency: str = "RUB"
+
+
+class TransferResponse(BaseModel):
+    message: str
+    transaction_id: int
+    from_balance: Decimal
+    to_balance: Decimal

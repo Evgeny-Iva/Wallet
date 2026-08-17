@@ -6,11 +6,12 @@ from uuid import UUID
 
 from api.crud import get_wallet_by_uuid, get_wallet_for_update
 from api.core.logger import logger
-from api.schemas.wallet import WalletCreated, OperationRequest
-from api.models.wallet import Wallet
+from api.schemas.wallet import WalletCreated, OperationRequest, TransferRequest, TransferResponse
 from api.dependencies.dependencies import get_current_user
 from api.database import get_db, AsyncSessionLocal
 from api.models.user import User
+from api.models.wallet import Wallet
+from api.models.transaction import Transaction
 
 
 router = APIRouter(prefix="/wallets", tags=["wallets"])
@@ -28,7 +29,7 @@ async def wallet_created(
     Выполняет операцию по созданию кошелька
 
     Пример запроса:
-    POST /api/v1/wallet/
+    POST /wallet/
     {
         "currency": "USD"
     }
@@ -52,9 +53,6 @@ async def wallet_created(
 
     if existing_wallet:
         raise HTTPException(status_code=400, detail="Wallet already been created")
-
-    # if wallet_data.user_id != current_user.id:
-    #     raise HTTPException(status_code=403, detail="Access denied")
 
     new_wallet = Wallet(
         user_id=current_user.id,
@@ -80,7 +78,7 @@ async def get_wallet(
     Находит кошелек по uuid и возвращает баланс
 
     Пример запроса:
-    GET /api/v1/wallets/123e4567-e89b-12d3-a456-426614174000
+    GET /wallets/123e4567-e89b-12d3-a456-426614174000
 
     Успешный ответ (200):
     {"balance": 100.50}
@@ -159,3 +157,75 @@ async def make_operation(
         f"Wallet {wallet_id}: {operation_type} {request.amount}, new balance {wallet.balance}"
     )
     return {"balance": wallet.balance}
+
+
+@router.post("/{wallet_id}/transfer", response_model=TransferResponse)
+async def transaction(
+        wallet_id: UUID,
+        transfer_data: TransferRequest,
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    Выполняет операцию перевода между кошельками
+
+    Пример запроса:
+    POST /wallets/123e4567-e89b-12d3-a456-426614174000/transfer
+    {
+        to_wallet_id: 123e4567-e89b-12d3-a456-789123456000
+        amount: 100
+        currency: RUB
+    }
+
+    Успешный ответ(200):
+    {
+        "message": "Transfer completed",
+        "transaction_id": 123,
+        "from_balance": 2000,
+        "to_balance": 1100
+    }
+
+    Ошибки:
+    - 400: Не соответствие валют
+    - 400: Недостаточно средств
+    - 403: Доступ запрещен
+    - 404: Кошелек не найден
+    - 404: Кошелек получателя не найден
+    """
+    from_wallet = await db.get(Wallet, wallet_id)
+
+    if not from_wallet:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+
+    if from_wallet.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    to_wallet = await db.get(Wallet, transfer_data.to_wallet_id)
+    if not to_wallet:
+        raise HTTPException(status_code=404, detail="Recipient wallet not found")
+
+    if to_wallet.currency != transfer_data.currency:
+        raise HTTPException(status_code=400, detail="Currency mismatch")
+
+    if from_wallet.balance < transfer_data.amount:
+        raise HTTPException(status_code=400, detail="Insufficient funds")
+
+    from_wallet.balance -= transfer_data.amount
+    to_wallet.balance += transfer_data.amount
+
+    new_transaction = Transaction(
+        from_wallet_id=from_wallet.uuid,
+        to_wallet_id=to_wallet.uuid,
+        amount=transfer_data.amount,
+        currency=from_wallet.currency,
+        status="completed"
+    )
+    db.add(new_transaction)
+    await db.commit()
+
+    return {
+        "message": "Transfer completed",
+        "transaction_id": new_transaction.id,
+        "from_balance": from_wallet.balance,
+        "to_balance": to_wallet.balance
+    }

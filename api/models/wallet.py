@@ -13,7 +13,8 @@ class Wallet(Base):
     uuid = Column(
         UUID(as_uuid=True),
         primary_key=True,
-        index=True, default=uuid.uuid4,
+        index=True,
+        default=uuid.uuid4,
         unique=True,
         comment='Уникальный ключ кошелька'
     )
