@@ -53,8 +53,8 @@ async def wallet_created(
     if existing_wallet:
         raise HTTPException(status_code=400, detail="Wallet already been created")
 
-    if wallet_data.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # if wallet_data.user_id != current_user.id:
+    #     raise HTTPException(status_code=403, detail="Access denied")
 
     new_wallet = Wallet(
         user_id=current_user.id,
@@ -125,8 +125,6 @@ async def make_operation(
     - 404: Кошелек не найден
     - 409: Кошелек заблокирован
     """
-
-    await db.begin()
 
     try:
         wallet = await get_wallet_for_update(db, wallet_id)

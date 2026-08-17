@@ -66,6 +66,6 @@ async def auth_headers(auth_token):
 async def test_wallet(client, auth_headers):
     """Создает тестовый кошелек и возвращает его UUID"""
     wallet_data = {"currency": "RUB"}
-    response = await client.post("/api/v1/wallets/", json=wallet_data, headers=auth_headers)
+    response = await client.post("/wallets/", json=wallet_data, headers=auth_headers)
     assert response.status_code == 200
     return response.json()["wallet_uuid"]

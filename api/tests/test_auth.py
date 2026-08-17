@@ -1,8 +1,6 @@
 import pytest
 import uuid
 
-from api.tests.conftest import test_user
-
 
 @pytest.mark.asyncio
 async def test_register_success(client):
