@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from decimal import Decimal
-from sqlalchemy.dialects.postgresql import UUID
+from uuid import UUID
 
 
 
