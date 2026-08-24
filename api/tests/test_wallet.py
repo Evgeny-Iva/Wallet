@@ -105,3 +105,24 @@ async def test_concurrent_deposit_withdraw(client, test_wallet, auth_headers):
         headers=auth_headers
     )
     assert final_balance.json()["balance"] in ("50.00", '150.00')
+
+
+@pytest.mark.asyncio
+async def test_transfer_negative_amount(client, test_wallet, test_wallet2, auth_headers):
+    """Проверка на отрицательный запрос перевода"""
+    wallet1_uuid = test_wallet
+    wallet2_uuid = test_wallet2
+
+    transfer_data = {
+        "to_wallet_id": wallet2_uuid,
+        "amount": -10.00,
+        "currency": "RUB"
+    }
+
+    response = await client.post(
+        f"/wallets/{wallet1_uuid}/transfer",
+        json=transfer_data,
+        headers=auth_headers
+    )
+
+    assert response.status_code == 422
