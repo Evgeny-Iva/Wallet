@@ -5,8 +5,17 @@ FastAPI + PostgreSQL + Docker + тесты.
 
 ## Функциональность
 
-- GET `/api/v1/wallets/{wallet_uuid}` — получить баланс
-- POST `/api/v1/wallets/{wallet_uuid}/operation` — пополнение (DEPOSIT) или снятие (WITHDRAW)
+### Кошельки
+- POST `/wallets/` - создание кошелька
+- GET `/wallets/{wallet_uuid}` - получить баланс
+- POST `/wallets/{wallet_uuid}/operation` - пополнение (DEPOSIT) или снятие (WITHDRAW)
+- POST `/{wallet_id}/transfer` - Выполняет операцию перевода между кошельками
+
+### Пользователи
+- POST `/auth/register` - регистрация пользователя
+- POST `/auth/login` - авторизация пользователя
+- POST `/auth/logout` - сброс сессии
+- GET `/users/me` - получение данных о пользователе
 
 ## Запуск
 
