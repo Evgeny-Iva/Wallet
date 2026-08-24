@@ -6,12 +6,19 @@ from uuid import UUID
 
 from api.crud import get_wallet_by_uuid, get_wallet_for_update
 from api.core.logger import logger
-from api.schemas.wallet import WalletCreated, OperationRequest, TransferRequest, TransferResponse
 from api.dependencies.dependencies import get_current_user
 from api.database import get_db, AsyncSessionLocal
 from api.models.user import User
 from api.models.wallet import Wallet
 from api.models.transaction import Transaction
+from api.schemas.wallet import (
+    WalletCreated,
+    OperationRequest,
+    TransferRequest,
+    TransferResponse,
+    BalanceResponse,
+    WalletCreatedResponse
+)
 
 
 router = APIRouter(prefix="/wallets", tags=["wallets"])
@@ -19,12 +26,12 @@ router = APIRouter(prefix="/wallets", tags=["wallets"])
 logger.info("Wallet created")
 
 
-@router.post("/")
+@router.post("/", response_model=WalletCreatedResponse)
 async def wallet_created(
         wallet_data: WalletCreated,
         current_user: User = Depends(get_current_user),
         db: AsyncSession = Depends(get_db)
-) -> dict[str, str | UUID]:
+) -> WalletCreatedResponse:
     """
     Выполняет операцию по созданию кошелька
 
@@ -68,12 +75,12 @@ async def wallet_created(
     return {"message": "Wallet created", "wallet_uuid": new_wallet.uuid}
 
 
-@router.get("/{wallet_id}")
+@router.get("/{wallet_id}", response_model=BalanceResponse)
 async def get_wallet(
         wallet_id: UUID,
         current_user: User = Depends(get_current_user),
         db: AsyncSession = Depends(get_db)
-) -> dict[str, Decimal]:
+) -> BalanceResponse:
     """
     Находит кошелек по uuid и возвращает баланс
 
@@ -98,12 +105,12 @@ async def get_wallet(
     return {"balance": wallet.balance}
 
 
-@router.post("/{wallet_id}/operation")
+@router.post("/{wallet_id}/operation", response_model=BalanceResponse)
 async def make_operation(
         wallet_id: UUID, request: OperationRequest,
         current_user: User = Depends(get_current_user),
         db: AsyncSession = Depends(get_db)
-) -> dict[str, Decimal]:
+) -> BalanceResponse:
     """
     Выполняет операцию пополнения (DEPOSIT) или снятия (WITHDRAW) с кошелька.
 
@@ -165,7 +172,7 @@ async def transaction(
         transfer_data: TransferRequest,
         current_user: User = Depends(get_current_user),
         db: AsyncSession = Depends(get_db)
-):
+) -> TransferResponse:
     """
     Выполняет операцию перевода между кошельками
 

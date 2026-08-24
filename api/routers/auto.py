@@ -7,19 +7,28 @@ from api.core.hashing import hash_password, verify_password
 from api.core.jwt import create_access_token
 from api.core.blacklist import add_to_blacklist
 from api.config import settings
-from api.schemas.user import UserLogin, UserCreate
+from api.schemas.user import (
+    UserLogin,
+    UserCreate,
+    RegisterResponse,
+    LoginResponse,
+    LogoutResponse
+)
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register")
-async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+@router.post("/register", response_model=RegisterResponse)
+async def register(
+        user_data: UserCreate,
+        db: AsyncSession = Depends(get_db)
+) -> RegisterResponse:
     """
     Выполняет операцию по созданию пользователя
 
     Пример запроса:
-    POST /api/v1/register
+    POST /auth/register
     {
         "first_name": "Ivan",
         "last_name": "Ivanov",
@@ -59,13 +68,16 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     return {"message": "User created", "user_id": new_user.id}
 
 
-@router.post("/login")
-async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
+@router.post("/login", response_model=LoginResponse)
+async def login(
+        user_data: UserLogin,
+        db: AsyncSession = Depends(get_db)
+) -> LoginResponse:
     """
     Выполняет операцию по авторизации
 
     Пример запроса:
-    POST /api/v1/login
+    POST /auth/login
     {
         "email": "Ivan@mail.ru",
         "password": "secret123"
@@ -97,18 +109,18 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
     return {"access_token": create_access_token(existing_user.id), "token_type": "bearer"}
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=LogoutResponse)
 async def logout(
         current_user: User = Depends(get_current_user),
         authorization: str = Header(...)
-):
+) -> LogoutResponse:
     """
     Выполняет операцию по выходу из системы
 
     Токен добавляется в чёрный список и становится недействительным
 
     Пример запроса:
-    POST /api/v1/logout
+    POST /auth/logout
 
     Успешный ответ(200):
     {

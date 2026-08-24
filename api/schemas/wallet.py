@@ -25,13 +25,26 @@ class OperationRequest(BaseModel):
 
 
 class TransferRequest(BaseModel):
+    """Схема запроса для операции перевода с кошелька на кошелек"""
     to_wallet_id: UUID
-    amount: Decimal
+    amount: Decimal = Field(..., gt=0, description="Сумма должна быть положительной")
     currency: str = "RUB"
 
 
 class TransferResponse(BaseModel):
+    """Схема ответа перевода"""
     message: str
     transaction_id: int
     from_balance: Decimal
     to_balance: Decimal
+
+
+class BalanceResponse(BaseModel):
+    """Схема ответа баланса кошелька"""
+    balance: Decimal
+
+
+class WalletCreatedResponse(BaseModel):
+    """Схема ответа создания пользователя"""
+    message: str
+    wallet_uuid: UUID
