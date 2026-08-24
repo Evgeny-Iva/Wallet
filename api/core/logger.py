@@ -5,7 +5,7 @@ from api.config import settings
 
 log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-def setup_logger():
+def setup_logger() -> logging.Logger:
     logger = logging.getLogger("wallet_api")
 
     file_handler = RotatingFileHandler(

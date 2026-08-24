@@ -1,17 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class UserCreate(BaseModel):
     """Схема запроса регистрации пользователя"""
     first_name: str
     last_name: str
-    email: str
+    email: EmailStr
     password: str
 
 
 class UserLogin(BaseModel):
     """Схема запроса авторизации пользователя"""
-    email: str
+    email: EmailStr
     password: str
 
 
