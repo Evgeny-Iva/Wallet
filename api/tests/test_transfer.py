@@ -164,3 +164,24 @@ async def test_transfer_access_denied(
 
     assert new_balance1 == initial_balance1
     assert new_balance2 == initial_balance2
+
+
+@pytest.mark.asyncio
+async def test_transfer_negative_amount(client, test_wallet, test_wallet2, auth_headers):
+    """Проверка на отрицательный запрос перевода"""
+    wallet1_uuid = test_wallet
+    wallet2_uuid = test_wallet2
+
+    transfer_data = {
+        "to_wallet_id": wallet2_uuid,
+        "amount": -10.00,
+        "currency": "RUB"
+    }
+
+    response = await client.post(
+        f"/wallets/{wallet1_uuid}/transfer",
+        json=transfer_data,
+        headers=auth_headers
+    )
+
+    assert response.status_code == 422

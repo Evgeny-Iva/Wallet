@@ -5,6 +5,8 @@ import pytest_asyncio
 from api.database import AsyncSessionLocal
 from decimal import Decimal
 
+from api.tests.conftest import wallet_balance
+
 
 @pytest.mark.asyncio
 async def test_get_existing_wallet(client, test_wallet, auth_headers):
@@ -100,29 +102,34 @@ async def test_concurrent_deposit_withdraw(client, test_wallet, auth_headers):
     success_count = sum(1 for r in results if r.status_code == 200)
     assert success_count >= 1
 
-    final_balance = await client.get(
-        f"/wallets/{test_wallet}",
-        headers=auth_headers
-    )
-    assert final_balance.json()["balance"] in ("50.00", '150.00')
+    wallet_uuid = test_wallet
+    balance = await wallet_balance(client, wallet_uuid, auth_headers)
+    assert str(balance) in ("50.00", '150.00')
 
 
 @pytest.mark.asyncio
-async def test_transfer_negative_amount(client, test_wallet, test_wallet2, auth_headers):
-    """Проверка на отрицательный запрос перевода"""
-    wallet1_uuid = test_wallet
-    wallet2_uuid = test_wallet2
-
-    transfer_data = {
-        "to_wallet_id": wallet2_uuid,
-        "amount": -10.00,
-        "currency": "RUB"
-    }
+@pytest.mark.parametrize(
+    "operation_type, amount, expected_status, expected_detail",
+    [
+        ("DEPOSIT", "-50.00", 422, "amount"),
+        ("WITHDRAW", "-50.00", 422, "amount"),
+        ("DEPOSIT", "0.00", 422, "amount"),
+        ("WITHDRAW", "0.00", 422, "amount"),
+    ],
+)
+async def test_operation_negative_or_zero_amount(
+        client, test_wallet, auth_headers, operation_type,
+        amount, expected_status, expected_detail
+):
+    """Проверка, что API не принимает отрицательные или нулевые суммы"""
+    wallet_uuid = test_wallet
+    old_balance = await wallet_balance(client, wallet_uuid, auth_headers)
 
     response = await client.post(
-        f"/wallets/{wallet1_uuid}/transfer",
-        json=transfer_data,
+        f"/wallets/{test_wallet}/operation",
+        json={"operation_type": operation_type, "amount": amount},
         headers=auth_headers
     )
-
+    new_balance = await wallet_balance(client, wallet_uuid, auth_headers)
     assert response.status_code == 422
+    assert old_balance == new_balance
